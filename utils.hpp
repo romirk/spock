@@ -4,10 +4,19 @@
 
 #ifndef UTILS_HPP
 #define UTILS_HPP
+#include <vector>
+
 #include "vulkan.h"
+
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
 
 void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 
-uint32_t rateDeviceSuitability(VkPhysicalDevice device);
+
+
 
 #endif //UTILS_HPP

@@ -33,32 +33,3 @@ void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &create
     };
 }
 
-uint32_t rateDeviceSuitability(VkPhysicalDevice device) {
-    VkPhysicalDeviceProperties deviceProperties;
-    VkPhysicalDeviceFeatures deviceFeatures;
-
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-    const auto indices = findQueueFamilies(device);
-
-    std::cout << "considering " << deviceProperties.deviceName;
-
-
-    // Application can't function without geometry shaders
-    if (!deviceFeatures.geometryShader || !indices.isComplete()) {
-        std::cout << " - not supported" << std::endl;
-        return 0;
-    }
-
-    uint32_t score = 0;
-
-    // Discrete GPUs have a significant performance advantage
-    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-        score += 1000;
-
-    // Maximum possible size of textures affects graphics quality
-    score += deviceProperties.limits.maxImageDimension2D;
-
-    std::cout << " - score: " << score << std::endl;
-    return score;
-}
