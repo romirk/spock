@@ -13,12 +13,13 @@
 #include "vulkan.h"
 #include "main.hpp"
 
+
 void HelloTriangleApplication::cleanup() {
     vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
     vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
     vkDestroyFence(device, inFlightFence, nullptr);
 
-    // vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    // // vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     vkDestroyCommandPool(device, commandPool, nullptr);
 
     for (const auto framebuffer: swapChainFramebuffers) {
@@ -122,6 +123,10 @@ void HelloTriangleApplication::pickPhysicalDevice() {
 
     if (candidates.rbegin()->first > 0) {
         physicalDevice = candidates.rbegin()->second;
+
+        // VkPhysicalDeviceProperties deviceProperties;
+        // vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+        // std::cout << "selected " << deviceProperties.deviceName << std::endl;
     } else
         throw std::runtime_error("failed to find a suitable GPU!");
 }
@@ -203,6 +208,8 @@ void HelloTriangleApplication::createSwapChain() {
         createInfo.pQueueFamilyIndices = queueFamilyIndices;
     } else {
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0; // Optional
+        createInfo.pQueueFamilyIndices = nullptr; // Optional
     }
 
     if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
@@ -268,23 +275,12 @@ void HelloTriangleApplication::createRenderPass() {
         .pColorAttachments = &colorAttachmentRef
     };
 
-    VkSubpassDependency dependency{
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .srcAccessMask = 0,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-    };
-
-    const VkRenderPassCreateInfo renderPassInfo{
+    VkRenderPassCreateInfo renderPassInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .attachmentCount = 1,
         .pAttachments = &colorAttachment,
         .subpassCount = 1,
-        .pSubpasses = &subpass,
-        .dependencyCount = 1,
-        .pDependencies = &dependency
+        .pSubpasses = &subpass
     };
 
     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
@@ -293,8 +289,8 @@ void HelloTriangleApplication::createRenderPass() {
 }
 
 void HelloTriangleApplication::createGraphicsPipeline() {
-    const auto vertShaderCode = readFile("shaders/triangle.vert.spv");
-    const auto fragShaderCode = readFile("shaders/triangle.frag.spv");
+    const auto vertShaderCode = readFile("shaders/vert.spv");
+    const auto fragShaderCode = readFile("shaders/frag.spv");
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -327,6 +323,19 @@ void HelloTriangleApplication::createGraphicsPipeline() {
         .primitiveRestartEnable = VK_FALSE
     };
 
+    VkViewport viewport{
+        .x = 0.0f,
+        .y = 0.0f,
+        .width = static_cast<float>(swapChainExtent.width),
+        .height = static_cast<float>(swapChainExtent.height),
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+
+    VkRect2D scissor{
+        .offset = {0, 0},
+        .extent = swapChainExtent
+    };
 
     std::vector dynamicStates = {
         VK_DYNAMIC_STATE_VIEWPORT,
@@ -342,7 +351,9 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     VkPipelineViewportStateCreateInfo viewportState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1,
+        .pViewports = &viewport,
         .scissorCount = 1,
+        .pScissors = &scissor
     };
 
 
@@ -403,6 +414,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
+
 
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
@@ -517,8 +529,9 @@ void HelloTriangleApplication::createSyncObjects() {
         vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS ||
         vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS) {
         throw std::runtime_error("failed to create semaphores!");
-    }
+        }
 }
+
 
 void HelloTriangleApplication::drawFrame() const {
     vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
@@ -563,7 +576,6 @@ void HelloTriangleApplication::drawFrame() const {
 
     vkQueuePresentKHR(presentQueue, &presentInfo);
 }
-
 VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<char> &code) const {
     const VkShaderModuleCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -600,6 +612,7 @@ QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice 
     }
     return indices;
 }
+
 
 SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(VkPhysicalDevice device) const {
     SwapChainSupportDetails details;
@@ -719,10 +732,10 @@ bool HelloTriangleApplication::checkValidationLayerSupport() {
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char *name: validationLayers) {
+    for ([[maybe_unused]] const char *layerName: validationLayers) {
         bool layerFound = false;
         for (const auto &[layerName, specVersion, implementationVersion, description]: availableLayers) {
-            if (strcmp(name, layerName) == 0) {
+            if (strcmp(layerName, layerName) == 0) {
                 layerFound = true;
                 break;
             }

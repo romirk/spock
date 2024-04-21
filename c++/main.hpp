@@ -5,13 +5,11 @@
 #ifndef MAIN_HPP
 #define MAIN_HPP
 
-#include <vector>
-#include "queues.hpp"
-#include "utils.hpp"
-
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
-const std::vector deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+const std::vector deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
 
 class HelloTriangleApplication {
 public:
@@ -24,8 +22,6 @@ public:
 
 private:
     GLFWwindow *window = nullptr;
-    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-    VkCommandPool commandPool = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
     VkDevice device = VK_NULL_HANDLE;
     VkExtent2D swapChainExtent = {};
@@ -39,20 +35,23 @@ private:
     VkRenderPass renderPass = VK_NULL_HANDLE;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
     VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
     VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
     VkFence inFlightFence = VK_NULL_HANDLE;
+
 
     void initWindow() {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "spock", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
     }
 
     void initVulkan() {
@@ -65,10 +64,6 @@ private:
         createImageViews();
         createRenderPass();
         createGraphicsPipeline();
-        createFramebuffers();
-        createCommandPool();
-        createCommandBuffer();
-        createSyncObjects();
     }
 
     void mainLoop() const {
@@ -106,15 +101,13 @@ private:
 
     void createCommandBuffer();
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer,
-                             uint32_t imageIndex) const;
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
 
     void createSyncObjects();
 
     void drawFrame() const;
 
-    [[nodiscard]] VkShaderModule
-    createShaderModule(const std::vector<char> &code) const;
+    VkShaderModule createShaderModule(const std::vector<char> &code) const;
 
     bool isDeviceSuitable(VkPhysicalDevice device) const;
 
@@ -126,16 +119,13 @@ private:
 
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const;
 
-    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(
-        const std::vector<VkSurfaceFormatKHR> &availableFormats);
+    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
-    static VkPresentModeKHR chooseSwapPresentMode(
-        const std::vector<VkPresentModeKHR> &availablePresentModes);
+    static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
 
-    [[nodiscard]] VkExtent2D
-    chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
+    [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
     static bool checkValidationLayerSupport();
 };
 
-#endif // MAIN_HPP
+#endif //MAIN_HPP
