@@ -1,16 +1,25 @@
-CFLAGS = -std=c++23 -O3
+CFLAGS = -std=c++23 -O1 -g
 LDFLAGS = -lglfw -lvulkan -ldl -lpthread
-SRCS = main.cpp utils.cpp validation.cpp queues.cpp
+SRCS = main.ref.cpp
+SHADERS = $(wildcard ./shaders/*.vert) $(wildcard ./shaders/*.frag)
 
-VulkanTest: $(SRCS)
+.PHONY: test clean all VulkanTest shaders
+
+all: VulkanTest shaders
+
+shaders: $(SHADERS)
+	@for shader in $(SHADERS); do \
+		glslc $$shader -o $$shader.spv; \
+		echo "Compiled $$shader"; \
+	done
+
+VulkanTest: $(SRCS) $(SHADERS)
 	g++ $(CFLAGS) -o VulkanTest $(SRCS) $(LDFLAGS)
 
-.PHONY: test clean all
 
-test: VulkanTest
+test: all
 	./VulkanTest
-
-all: VulkanTest
 
 clean:
 	rm -f VulkanTest
+	rm -f ./shaders/*.spv

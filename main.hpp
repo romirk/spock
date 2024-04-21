@@ -22,6 +22,8 @@ public:
 
 private:
     GLFWwindow *window = nullptr;
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
     VkDevice device = VK_NULL_HANDLE;
     VkExtent2D swapChainExtent = {};
@@ -35,8 +37,13 @@ private:
     VkRenderPass renderPass = VK_NULL_HANDLE;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
+
+    VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
+    VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
+    VkFence inFlightFence = VK_NULL_HANDLE;
 
 
     void initWindow() {
@@ -49,39 +56,67 @@ private:
 
     void initVulkan() {
         createInstance();
+
         setupDebugMessenger();
+
         createSurface();
+
         pickPhysicalDevice();
         createLogicalDevice();
+
         createSwapChain();
         createImageViews();
+
         createRenderPass();
         createGraphicsPipeline();
+        createFramebuffers();
+
+        createCommandPool();
+        createCommandBuffer();
+
+        createSyncObjects();
     }
 
     void mainLoop() const {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
+            drawFrame();
         }
+
+        vkDeviceWaitIdle(device);
     }
 
     void cleanup() const {
+        vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+        vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+        vkDestroyFence(device, inFlightFence, nullptr);
+
+        vkDestroyCommandPool(device, commandPool, nullptr);
+
+        for (const auto framebuffer : swapChainFramebuffers) {
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
+        }
+
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
 
-        for (const auto imageView: swapChainImageViews)
+        for (const auto imageView : swapChainImageViews) {
             vkDestroyImageView(device, imageView, nullptr);
-
-        if (enableValidationLayers)
-            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        }
 
         vkDestroySwapchainKHR(device, swapChain, nullptr);
         vkDestroyDevice(device, nullptr);
+
+        if (enableValidationLayers) {
+            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        }
+
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
 
         glfwDestroyWindow(window);
+
         glfwTerminate();
     }
 
@@ -103,7 +138,19 @@ private:
 
     void createGraphicsPipeline();
 
-    VkShaderModule createShaderModule(const std::vector<char> &code) const;
+    void createFramebuffers();
+
+    void createCommandPool();
+
+    void createCommandBuffer();
+
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
+
+    void createSyncObjects();
+
+    void drawFrame() const;
+
+    [[nodiscard]] VkShaderModule createShaderModule(const std::vector<char> &code) const;
 
     bool isDeviceSuitable(VkPhysicalDevice device) const;
 
