@@ -1,8 +1,9 @@
-CFLAGS = -std=c++17 -O2
+CFLAGS = -std=c++23 -O3
 LDFLAGS = -lglfw -lvulkan -ldl -lpthread
+SRCS = main.cpp utils.cpp validation.cpp queues.cpp
 
-VulkanTest: main.cpp
-	g++ $(CFLAGS) -o VulkanTest main.cpp $(LDFLAGS)
+VulkanTest: $(SRCS)
+	g++ $(CFLAGS) -o VulkanTest $(SRCS) $(LDFLAGS)
 
 .PHONY: test clean all
 
