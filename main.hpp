@@ -5,11 +5,13 @@
 #ifndef MAIN_HPP
 #define MAIN_HPP
 
+#include <vector>
+#include "queues.hpp"
+#include "utils.hpp"
+
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
-const std::vector deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+const std::vector deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 class HelloTriangleApplication {
 public:
@@ -45,35 +47,27 @@ private:
     VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
     VkFence inFlightFence = VK_NULL_HANDLE;
 
-
     void initWindow() {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "spock", nullptr, nullptr);
     }
 
     void initVulkan() {
         createInstance();
-
         setupDebugMessenger();
-
         createSurface();
-
         pickPhysicalDevice();
         createLogicalDevice();
-
         createSwapChain();
         createImageViews();
-
         createRenderPass();
         createGraphicsPipeline();
         createFramebuffers();
-
         createCommandPool();
         createCommandBuffer();
-
         createSyncObjects();
     }
 
@@ -86,39 +80,7 @@ private:
         vkDeviceWaitIdle(device);
     }
 
-    void cleanup() const {
-        vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
-        vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
-        vkDestroyFence(device, inFlightFence, nullptr);
-
-        vkDestroyCommandPool(device, commandPool, nullptr);
-
-        for (const auto framebuffer : swapChainFramebuffers) {
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-        }
-
-        vkDestroyPipeline(device, graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-        vkDestroyRenderPass(device, renderPass, nullptr);
-
-        for (const auto imageView : swapChainImageViews) {
-            vkDestroyImageView(device, imageView, nullptr);
-        }
-
-        vkDestroySwapchainKHR(device, swapChain, nullptr);
-        vkDestroyDevice(device, nullptr);
-
-        if (enableValidationLayers) {
-            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-        }
-
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-        vkDestroyInstance(instance, nullptr);
-
-        glfwDestroyWindow(window);
-
-        glfwTerminate();
-    }
+    void cleanup();
 
     void createInstance();
 
@@ -144,13 +106,15 @@ private:
 
     void createCommandBuffer();
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
+    void recordCommandBuffer(VkCommandBuffer commandBuffer,
+                             uint32_t imageIndex) const;
 
     void createSyncObjects();
 
     void drawFrame() const;
 
-    [[nodiscard]] VkShaderModule createShaderModule(const std::vector<char> &code) const;
+    [[nodiscard]] VkShaderModule
+    createShaderModule(const std::vector<char> &code) const;
 
     bool isDeviceSuitable(VkPhysicalDevice device) const;
 
@@ -162,13 +126,16 @@ private:
 
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const;
 
-    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+        const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
-    static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+    static VkPresentModeKHR chooseSwapPresentMode(
+        const std::vector<VkPresentModeKHR> &availablePresentModes);
 
-    [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
+    [[nodiscard]] VkExtent2D
+    chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
     static bool checkValidationLayerSupport();
 };
 
-#endif //MAIN_HPP
+#endif // MAIN_HPP

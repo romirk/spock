@@ -1,6 +1,6 @@
-CFLAGS = -std=c++23 -O1 -g
+CFLAGS = -std=c++23 -O0 -g
 LDFLAGS = -lglfw -lvulkan -ldl -lpthread
-SRCS = main.ref.cpp
+SRCS = main.cpp utils.cpp validation.cpp queues.cpp
 SHADERS = $(wildcard ./shaders/*.vert) $(wildcard ./shaders/*.frag)
 
 .PHONY: test clean all VulkanTest shaders

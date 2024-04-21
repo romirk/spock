@@ -13,6 +13,40 @@
 #include "vulkan.h"
 #include "main.hpp"
 
+void HelloTriangleApplication::cleanup() {
+    vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+    vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+    vkDestroyFence(device, inFlightFence, nullptr);
+
+    // vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    vkDestroyCommandPool(device, commandPool, nullptr);
+
+    for (const auto framebuffer: swapChainFramebuffers) {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    }
+
+    vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyRenderPass(device, renderPass, nullptr);
+
+    for (const auto imageView: swapChainImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
+    vkDestroyDevice(device, nullptr);
+
+    if (enableValidationLayers) {
+        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    }
+
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroyInstance(instance, nullptr);
+
+    glfwDestroyWindow(window);
+
+    glfwTerminate();
+}
 
 void HelloTriangleApplication::createInstance() {
     if (enableValidationLayers && !checkValidationLayerSupport()) {
@@ -88,10 +122,6 @@ void HelloTriangleApplication::pickPhysicalDevice() {
 
     if (candidates.rbegin()->first > 0) {
         physicalDevice = candidates.rbegin()->second;
-
-        // VkPhysicalDeviceProperties deviceProperties;
-        // vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-        // std::cout << "selected " << deviceProperties.deviceName << std::endl;
     } else
         throw std::runtime_error("failed to find a suitable GPU!");
 }
@@ -173,8 +203,6 @@ void HelloTriangleApplication::createSwapChain() {
         createInfo.pQueueFamilyIndices = queueFamilyIndices;
     } else {
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0; // Optional
-        createInfo.pQueueFamilyIndices = nullptr; // Optional
     }
 
     if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
@@ -249,7 +277,7 @@ void HelloTriangleApplication::createRenderPass() {
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
     };
 
-    VkRenderPassCreateInfo renderPassInfo{
+    const VkRenderPassCreateInfo renderPassInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .attachmentCount = 1,
         .pAttachments = &colorAttachment,
@@ -691,10 +719,10 @@ bool HelloTriangleApplication::checkValidationLayerSupport() {
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for ([[maybe_unused]] const char *layerName: validationLayers) {
+    for (const char *name: validationLayers) {
         bool layerFound = false;
         for (const auto &[layerName, specVersion, implementationVersion, description]: availableLayers) {
-            if (strcmp(layerName, layerName) == 0) {
+            if (strcmp(name, layerName) == 0) {
                 layerFound = true;
                 break;
             }
