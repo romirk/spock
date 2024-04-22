@@ -1,5 +1,6 @@
 // #![allow(unused)]
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -8,23 +9,57 @@ use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, Copy
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
 };
-use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo};
+use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo};
+use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
 use vulkano::device::QueueFlags;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
 use vulkano::sync::{self, GpuFuture};
 use vulkano::VulkanLibrary;
 
+const REQUIRED_EXTENSIONS: DeviceExtensions = DeviceExtensions {
+    khr_swapchain: true,
+    ..DeviceExtensions::empty()
+};
+
+fn is_device_suitable(device: &Arc<PhysicalDevice>) -> bool {
+    device.supported_extensions().contains(&REQUIRED_EXTENSIONS)
+}
+
+fn rate_device(device: &Arc<PhysicalDevice>) -> u32 {
+    let feats = device.supported_features();
+    if !feats.geometry_shader || !is_device_suitable(device) {
+        return 0;
+    }
+
+    let props = device.properties();
+    let mut score = 0u32;
+    if props.device_type == PhysicalDeviceType::DiscreteGpu {
+        score += 1000;
+    }
+    score += props.max_image_dimension2_d;
+    score
+}
+
+fn select_physical(instance: Arc<Instance>) -> Arc<PhysicalDevice> {
+    let devices = instance
+        .enumerate_physical_devices()
+        .expect("could not enumerate devices");
+    let mut map = BTreeMap::new();
+    for device in devices {
+        let score = rate_device(&device);
+        println!("considering {} -- {score}", device.properties().device_name);
+        map.insert(score, device);
+    }
+    map.pop_last().unwrap().1
+}
+
 fn main() {
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
     let instance =
         Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
 
-    let physical_device = instance
-        .enumerate_physical_devices()
-        .expect("could not enumerate devices")
-        .next()
-        .expect("no devices available");
+    let physical_device = select_physical(instance);
 
     println!(
         "Selected physical device: \x1b[32m{}\x1b[0m",
@@ -123,7 +158,7 @@ fn main() {
     let t = Instant::now();
     future.wait(None).unwrap();
     let d = t.elapsed();
-    
+
     let src_content = source.read().unwrap();
     let destination_content = destination.read().unwrap();
     assert_eq!(&*src_content, &*destination_content);
