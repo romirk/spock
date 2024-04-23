@@ -1,17 +1,16 @@
 // #![allow(unused)]
 
-use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Instant;
 
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
 };
-use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo};
+use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
 use vulkano::device::QueueFlags;
+use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
 use vulkano::sync::{self, GpuFuture};
@@ -38,20 +37,19 @@ fn rate_device(device: &Arc<PhysicalDevice>) -> u32 {
         score += 1000;
     }
     score += props.max_image_dimension2_d;
+    println!(
+        "Device \x1b[32m{}\x1b[0m scored \x1b[32m{}\x1b[0m",
+        props.device_name, score
+    );
     score
 }
 
 fn select_physical(instance: Arc<Instance>) -> Arc<PhysicalDevice> {
-    let devices = instance
+    instance
         .enumerate_physical_devices()
-        .expect("could not enumerate devices");
-    let mut map = BTreeMap::new();
-    for device in devices {
-        let score = rate_device(&device);
-        println!("considering {} -- {score}", device.properties().device_name);
-        map.insert(score, device);
-    }
-    map.pop_last().unwrap().1
+        .expect("could not enumerate devices")
+        .max_by_key(rate_device)
+        .expect("no device found")
 }
 
 fn main() {
