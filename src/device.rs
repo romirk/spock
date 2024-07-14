@@ -1,6 +1,7 @@
 use std::sync::Arc;
-
-use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags};
+use vulkano::device::{
+    Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
+};
 use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
 use vulkano::instance::Instance;
 
@@ -20,15 +21,17 @@ fn rate_device(device: &Arc<PhysicalDevice>) -> u32 {
     }
 
     let props = device.properties();
-    let mut score = 0u32;
-    if props.device_type == PhysicalDeviceType::DiscreteGpu {
-        score += 1000;
-    }
-    score += props.max_image_dimension2_d;
-    println!(
-        "Device \x1b[32m{}\x1b[0m scored \x1b[32m{}\x1b[0m",
-        props.device_name, score
-    );
+    // score += props.max_image_dimension2_d;
+    let score = props.max_image_dimension2_d
+        + (if props.device_type == PhysicalDeviceType::DiscreteGpu {
+            1000
+        } else {
+            0
+        });
+    // println!(
+    //     "Device \x1b[32m{}\x1b[0m scored \x1b[32m{}\x1b[0m",
+    //     props.device_name, score
+    // );
     score
 }
 
@@ -63,9 +66,8 @@ pub fn create_device(physical_device: Arc<PhysicalDevice>) -> (Arc<Device>, Arc<
             ..Default::default()
         },
     )
-        .expect("failed to create device");
+    .expect("failed to create device");
 
     let queue = queues.next().unwrap();
     (device, queue)
 }
-

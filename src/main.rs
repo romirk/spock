@@ -5,10 +5,13 @@ use std::time::{Duration, Instant};
 
 use vulkano::{sync, VulkanLibrary};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage};
+use vulkano::command_buffer::{
+    AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage,
+};
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
 };
+use vulkano::device::{Device, Queue};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
 use vulkano::pipeline::{Pipeline, PipelineBindPoint};
@@ -21,28 +24,33 @@ mod pipeline;
 fn time_future(future: FenceSignalFuture<CommandBufferExecFuture<NowFuture>>) -> Duration {
     let t = Instant::now();
     future.wait(None).unwrap();
-    let d = t.elapsed();
-    d
+    t.elapsed()
 }
 
-fn main() {
+fn vulkan_init() -> (Arc<Device>, Arc<Queue>) {
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
     let instance =
         Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
 
-    let physical_device = device::select_physical(instance);
+    // let physical_device = device::select_physical(instance);
 
-    println!(
-        "Selected physical device: \x1b[32m{}\x1b[0m",
-        physical_device.properties().device_name
-    );
+    // println!(
+    //     "Selected physical device: \x1b[32m{}\x1b[0m",
+    //     physical_device.properties().device_name
+    // );
 
-    let (device, queue) = device::create_device(physical_device);
+    // let (device, queue) = device::create_device(physical_device);
+    //
+    // println!(
+    //     "Created logical device with API version \x1b[32m{}\x1b[0m",
+    //     device.api_version()
+    // );
+    // (device, queue)
+    device::create_device(device::select_physical(instance))
+}
 
-    println!(
-        "Created logical device with API version \x1b[32m{}\x1b[0m",
-        device.api_version()
-    );
+fn main() {
+    let (device, queue) = vulkan_init();
 
     let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
@@ -59,11 +67,11 @@ fn main() {
             ..Default::default()
         },
         data_iter,
-    ).expect("failed to create buffer");
+    )
+    .expect("failed to create buffer");
 
-
-    let (compute_pipeline, descriptor_set_layout_index, descriptor_set) = pipeline::create_pipeline(&device, &data_buffer);
-
+    let (compute_pipeline, descriptor_set_layout_index, descriptor_set) =
+        pipeline::create_pipeline(&device, &data_buffer);
 
     let command_buffer_allocator = StandardCommandBufferAllocator::new(
         device.clone(),
@@ -75,7 +83,7 @@ fn main() {
         queue.queue_family_index(),
         CommandBufferUsage::OneTimeSubmit,
     )
-        .unwrap();
+    .unwrap();
 
     let work_group_counts = [1024, 1, 1];
 
@@ -109,4 +117,3 @@ fn main() {
 
     println!("compute OK ({} us)", d.as_micros());
 }
-
